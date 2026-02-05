@@ -135,8 +135,9 @@ async function processBilling() {
 }
 
 export const scheduleBillingCron = () => {
-  // Run daily at 08:00 America/Caracas
-  nodeCron.schedule('0 8 * * *', () => {
+  // Schedule from env (default 0 8 * * *) in America/Caracas
+  const schedule = String(env.cron?.schedule || '0 8 * * *');
+  nodeCron.schedule(schedule, () => {
     processBilling().catch(err => logger.error('cron process error', err));
   }, {
     timezone: 'America/Caracas'
