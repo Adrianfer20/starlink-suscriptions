@@ -1,0 +1,28 @@
+# Node
+node_modules/
+
+# Build
+dist/
+
+# Env
+.env
+.env.*
+
+# Firebase service account JSON (do NOT commit)
+starlink-suscription-firebase-adminsdk-fbsvc-a801754dc8.json
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+coverage/

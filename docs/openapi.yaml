@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Starlink Subscriptions API
+  version: 0.1.0
+  description: |
+    API para gestionar clientes Starlink y notificaciones de vencimiento/suspensión vía WhatsApp (Twilio).
+    Esta API NO procesa pagos; sólo notifica y registra intentos en Firestore.
+servers:
+  - url: https://api.example.com
+paths:
+  /clients:
+    post:
+      summary: Crear cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, apellido, email, telefono, cedula, billingDate]
+              properties:
+                nombre:
+                  type: string
+                apellido:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                telefono:
+                  type: string
+                  example: "+584223552628"
+                cedula:
+                  type: string
+                billingDate:
+                  type: string
+                  format: date
+                  example: "2026-02-08"
+              description: |
+                Campos públicos aceptados por la API (en español). Internamente estos
+                campos se normalizan a nombres canónicos en inglés antes de procesar
+                la lógica y las plantillas Twilio. Mapeo público -> interno:
+                - nombre -> name
+                - apellido -> lastName
+                - telefono -> phone
+                - cedula -> idNumber
+                - billingDate -> billingDate
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+    get:
+      summary: Listar clientes
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Client'
+  /clients/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Obtener cliente por id
+      responses:
+        '200':
+          description: Cliente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          description: No encontrado
+    put:
+      summary: Actualizar cliente
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                apellido: { type: string }
+                email: { type: string }
+                telefono: { type: string }
+                cedula: { type: string }
+                billingDate: { type: string, format: date }
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          description: No encontrado
+  /notifications/send/{clientId}:
+    post:
+      summary: Enviar plantilla WhatsApp a cliente
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: template
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Envío OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  sid: { type: string }
+        '400': { description: 'Bad Request (validation)' }
+        '404': { description: 'Client not found' }
+        '500': { description: 'Failed to send' }
+  /cron/billing:
+    post:
+      summary: Iniciar proceso de facturación / notificaciones (scheduler)
+      description: |
+        Endpoint protegido para que un scheduler externo (Cloud Scheduler, cron) invoque
+        `processBilling()`. Requiere header `x-cron-secret` o `Authorization: Bearer <secret>`.
+      responses:
+        '200': { description: 'Billing process started' }
+        '401': { description: 'Unauthorized' }
+components:
+  schemas:
+    Client:
+      type: object
+      properties:
+        id: { type: string }
+        nombre: { type: string }
+        apellido: { type: string }
+        email: { type: string }
+        telefono: { type: string }
+        cedula: { type: string }
+        billingDate: { type: string }
+        status: { type: string, enum: [ACTIVO, POR_VENCER, SUSPENDIDO] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+  securitySchemes:
+    CronHeader:
+      type: apiKey
+      in: header
+      name: x-cron-secret
+tags:
+  - name: clients
+  - name: notifications
+  - name: cron
