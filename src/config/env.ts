@@ -18,6 +18,7 @@ type EnvShape = {
   };
   cron: {
     secret: string;
+    schedule: string;
   };
   notifications: {
     retryMinutes: number;
@@ -39,7 +40,8 @@ const env: EnvShape = {
     whatsappFrom: process.env.TWILIO_WHATSAPP_FROM || ''
   },
   cron: {
-    secret: process.env.CRON_SECRET || ''
+    secret: process.env.CRON_SECRET || '',
+    schedule: process.env.BILLING_CRON_SCHEDULE || '0 8 * * *'
   },
   notifications: {
     retryMinutes: process.env.NOTIF_RETRY_MINUTES ? Number(process.env.NOTIF_RETRY_MINUTES) : 60
