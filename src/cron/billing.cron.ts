@@ -136,12 +136,34 @@ async function processBilling() {
 
 export const scheduleBillingCron = () => {
   // Schedule from env (default 0 8 * * *) in America/Caracas
-  const schedule = String(env.cron?.schedule || '0 8 * * *');
-  nodeCron.schedule(schedule, () => {
-    processBilling().catch(err => logger.error('cron process error', err));
-  }, {
-    timezone: 'America/Caracas'
-  });
+  let scheduleRaw = String(env.cron?.schedule || '0 8 * * *');
+  // remove surrounding quotes if any, normalize whitespace
+  let schedule = scheduleRaw.replace(/^\s*"|"\s*$|^\s*'|'\s*$/g, '').trim().replace(/\s+/g, ' ');
+  // validate cron expression using node-cron
+  if (!nodeCron.validate || typeof nodeCron.validate !== 'function') {
+    // fallback: try to schedule and catch error
+    try {
+      nodeCron.schedule(schedule, () => {
+        processBilling().catch(err => logger.error('cron process error', err));
+      }, {
+        timezone: 'America/Caracas'
+      });
+      logger.info('Billing cron scheduled', { schedule });
+    } catch (err) {
+      logger.error('Invalid cron schedule, billing cron not scheduled', { scheduleRaw, err });
+    }
+  } else {
+    if (!nodeCron.validate(schedule)) {
+      logger.error('BILLING_CRON_SCHEDULE is invalid, billing cron not scheduled', { scheduleRaw, schedule });
+    } else {
+      nodeCron.schedule(schedule, () => {
+        processBilling().catch(err => logger.error('cron process error', err));
+      }, {
+        timezone: 'America/Caracas'
+      });
+      logger.info('Billing cron scheduled', { schedule });
+    }
+  }
 };
 
 // Export for manual invocation (Cloud Scheduler or tests)
