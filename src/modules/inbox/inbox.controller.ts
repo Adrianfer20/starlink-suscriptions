@@ -16,11 +16,14 @@ export const twilioWhatsappWebhook = async (req: Request, res: Response) => {
         // Debug logs to help diagnose signature mismatches in production
         logger.info('Twilio webhook validation debug', {
           signature,
+          signatureValue: signature || null,
+          authTokenPresent: !!authToken,
           url,
           host: req.get('host'),
           protocol: req.protocol,
           contentType: req.get('content-type'),
           paramsKeys: Object.keys(params || {}),
+          headerKeys: Object.keys(req.headers || {}),
           ip: req.ip,
         });
 
