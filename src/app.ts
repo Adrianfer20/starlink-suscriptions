@@ -5,16 +5,21 @@ import clientRoutes from './modules/clients/client.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
 import cronRoutes from './cron/cron.routes';
 import logger from './utils/logger';
+import webhookRoutes from './modules/inbox/webhook.routes';
+import conversationsRoutes from './modules/inbox/conversations.routes';
 
 const app = express();
 
 app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/clients', clientRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/cron', cronRoutes);
+app.use('/webhooks', webhookRoutes);
+app.use('/conversations', conversationsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Not found' });

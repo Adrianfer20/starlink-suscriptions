@@ -21,4 +21,9 @@ const router = Router();
 
 router.post('/send/:clientId', controller.sendForClient);
 
+// Twilio webhook endpoint to receive incoming messages (WhatsApp/SMS)
+router.post('/webhook/twilio', controller.twilioWebhook);
+// List inbound messages received from Twilio
+router.get('/inbound', controller.listInbound);
+
 export default router;

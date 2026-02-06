@@ -5,6 +5,12 @@ const app = initFirebase();
 const db = app.firestore();
 let collection = db.collection('notifications');
 
+let inboundCollection = db.collection('inbound_messages');
+
+export const __setInboundCollection = (col: any) => {
+  inboundCollection = col;
+};
+
 // Test hook: allow replacing collection (used by unit tests)
 export const __setCollection = (col: any) => {
   collection = col;
@@ -24,6 +30,36 @@ export const existsNotification = async (clientId: string, type: string, dateTag
   const q = collection.where('clientId', '==', clientId).where('type', '==', type).where('dateTag','==', dateTag).limit(1);
   const snap = await q.get();
   return !snap.empty;
+};
+
+export const logInboundMessage = async (payload: { from?: string; to?: string; body?: string; sid?: string; raw?: any; receivedAt?: string }) => {
+  try {
+    const now = new Date().toISOString();
+    await inboundCollection.add({ ...payload, createdAt: now });
+  } catch (err) {
+    logger.error('log inbound message failed', err);
+  }
+};
+
+export const listInboundMessages = async (limit = 50) => {
+  try {
+    // Attempt to order by createdAt if supported by the collection mock
+    let q: any = inboundCollection;
+    if (typeof (inboundCollection as any).orderBy === 'function') {
+      q = inboundCollection.orderBy('createdAt', 'desc').limit(limit);
+      const snap = await q.get();
+      const items = snap.docs.map((d: any) => (typeof d.data === 'function' ? d.data() : d));
+      return items;
+    }
+
+    // Fallback: attempt to get and slice
+    const snap2 = await inboundCollection.limit(limit).get();
+    const items2 = snap2.docs.map((d: any) => (typeof d.data === 'function' ? d.data() : d));
+    return items2;
+  } catch (err) {
+    logger.error('list inbound messages failed', err);
+    return [];
+  }
 };
 
 // Decide if we should send (allow retry when last was FAILED and older than retryMinutes)
