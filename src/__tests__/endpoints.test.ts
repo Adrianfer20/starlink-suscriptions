@@ -58,28 +58,28 @@ describe('endpoints', () => {
   });
 
   it('POST /clients validation missing -> 400', async () => {
-    await request(app).post('/clients').send({ nombre: 'A' }).expect(400);
+    await request(app).post('/clients').set('Authorization', 'Bearer test-admin').send({ nombre: 'A' }).expect(400);
   });
 
   it('GET /clients/:id non-existent -> 404', async () => {
-    await request(app).get('/clients/nonexistent').expect(404);
+    await request(app).get('/clients/nonexistent').set('Authorization', 'Bearer test-admin').expect(404);
   });
 
   it('PUT /clients/:id updates status when billingDate changes', async () => {
     // create client
-    const createRes = await request(app).post('/clients').send({
+    const createRes = await request(app).post('/clients').set('Authorization', 'Bearer test-admin').send({
       nombre: 'Up', apellido: 'D', email: 'up@d.com', telefono: '+584223552630', cedula: '3', billingDate: new Date(Date.now() + 10*24*60*60*1000).toISOString().slice(0,10), plan: 'X', amount: '$10'
     }).expect(201);
 
     const id = createRes.body.id;
     const newBilling = new Date(Date.now() + 1*24*60*60*1000).toISOString().slice(0,10);
-    const updateRes = await request(app).put(`/clients/${id}`).send({ billingDate: newBilling }).expect(200);
+    const updateRes = await request(app).put(`/clients/${id}`).set('Authorization', 'Bearer test-admin').send({ billingDate: newBilling }).expect(200);
     expect(updateRes.body.status).toBeDefined();
   });
 
   it('POST /notifications/send/:clientId -> 500 when Twilio fails', async () => {
     // create client
-    const createRes = await request(app).post('/clients').send({
+    const createRes = await request(app).post('/clients').set('Authorization', 'Bearer test-admin').send({
       nombre: 'Notify', apellido: 'Fail', email: 'nf@test.com', telefono: '+584223552629', cedula: 'V1', billingDate: new Date(Date.now() + 1*24*60*60*1000).toISOString().slice(0,10), plan: 'P', amount: '$20'
     }).expect(201);
 
@@ -87,7 +87,7 @@ describe('endpoints', () => {
     // make Twilio mock fail for the next call (match by phone)
     twilioMock.__addRule({ toContains: '552629', response: { type: 'reject', value: new Error('twilio fail') } });
 
-    const res = await request(app).post(`/notifications/send/${id}`).query({ template: 'subscription_reminder_3days' }).send();
+    const res = await request(app).post(`/notifications/send/${id}`).set('Authorization','Bearer test-admin').query({ template: 'subscription_reminder_3days' }).send();
     expect([200,500]).toContain(res.status);
   });
 });

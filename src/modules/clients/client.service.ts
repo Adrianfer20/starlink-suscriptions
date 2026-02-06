@@ -19,6 +19,7 @@ export interface Client {
   status: ClientStatus | string;
   createdAt: string;
   updatedAt: string;
+  ownerUid?: string;
 }
 
 const app = initFirebase();
@@ -58,6 +59,7 @@ function toStoragePayload(payload: Partial<Client>) {
   if (payload.status) out.status = payload.status;
   if (payload.createdAt) out.createdAt = payload.createdAt;
   if (payload.updatedAt) out.updatedAt = payload.updatedAt;
+  if (payload.ownerUid) out.ownerUid = payload.ownerUid;
   return out;
 }
 
@@ -91,6 +93,7 @@ export const listClients = async () => {
       status: raw.status || computeStatus(normalized.billingDate),
       createdAt: raw.createdAt || null,
       updatedAt: raw.updatedAt || null,
+      ownerUid: raw.ownerUid || undefined,
     } as Client;
   });
 };
@@ -114,6 +117,7 @@ export const getClientById = async (id: string) => {
     status: raw.status || computeStatus(normalized.billingDate),
     createdAt: raw.createdAt || null,
     updatedAt: raw.updatedAt || null,
+    ownerUid: raw.ownerUid || undefined,
   } as Client;
 };
 

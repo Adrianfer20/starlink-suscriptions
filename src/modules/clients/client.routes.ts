@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as controller from './client.controller';
-import { validateClient } from '../../middleware';
+import { validateClient, authenticate, requireRole } from '../../middleware';
 
 const router = Router();
 
@@ -24,9 +24,14 @@ const router = Router();
 //   - Body: campos a actualizar.
 //   - Respuesta: 200 + cliente actualizado | 404 si no existe.
 
-router.post('/', validateClient, controller.create);
-router.get('/', controller.list);
-router.get('/:id', controller.getById);
-router.put('/:id', validateClient, controller.update);
+// Fase piloto: rutas protegidas
+// Crear cliente: sólo `admin` (ajustar si se desea permitir self-registration)
+router.post('/', authenticate, requireRole('admin'), validateClient, controller.create);
+// Listado completo: sólo `admin`
+router.get('/', authenticate, requireRole('admin'), controller.list);
+// Obtener por id: `admin` o `client`
+router.get('/:id', authenticate, requireRole(['admin', 'client']), controller.getById);
+// Actualizar: `admin` o `client`
+router.put('/:id', authenticate, requireRole(['admin', 'client']), validateClient, controller.update);
 
 export default router;

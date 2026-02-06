@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import clientRoutes from './modules/clients/client.routes';
+import authRoutes from './modules/auth/auth.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
 import cronRoutes from './cron/cron.routes';
 import logger from './utils/logger';
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/clients', clientRoutes);
+app.use('/auth', authRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/cron', cronRoutes);
 app.use('/webhooks', webhookRoutes);
