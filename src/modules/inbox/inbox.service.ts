@@ -78,19 +78,20 @@ export const listMessages = async (conversationId: string) => {
 export const sendMessage = async (conversationId: string, body: string) => {
   try {
     const from = env.twilio.whatsappFrom;
-    const to = conversationId;
+    const convId = normalizeConversationId(conversationId);
+    const to = convId;
     const res: any = await client.messages.create({ from, to, body });
 
     const now = new Date().toISOString();
 
 
     // Persist outgoing message in conversation subcollection
-    const convRef = conversationsCol.doc(conversationId);
-    await convRef.collection('messages').add({ conversationId, from, to, body, direction: 'out', timestamp: now, twilioMessageSid: res && res.sid ? res.sid : null });
+    const convRef = conversationsCol.doc(convId);
+    await convRef.collection('messages').add({ conversationId: convId, from, to, body, direction: 'out', timestamp: now, twilioMessageSid: res && res.sid ? res.sid : null });
 
     // Update conversation metadata
-    const docRef = conversationsCol.doc(conversationId);
-    await docRef.set({ phone: conversationId, lastMessage: body, lastDirection: 'out', updatedAt: now }, { merge: true });
+    const docRef = conversationsCol.doc(convId);
+    await docRef.set({ phone: convId, lastMessage: body, lastDirection: 'out', updatedAt: now }, { merge: true });
 
     return { success: true, sid: res && res.sid };
   } catch (err) {

@@ -10,6 +10,11 @@ import conversationsRoutes from './modules/inbox/conversations.routes';
 
 const app = express();
 
+// When running behind a proxy/tunnel (ngrok/localtunnel) trust the proxy so
+// `req.protocol` and `req.get('host')` reflect the original request. This is
+// important for Twilio signature validation which uses the full URL.
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
