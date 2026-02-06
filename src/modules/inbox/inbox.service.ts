@@ -7,7 +7,10 @@ const app = initFirebase();
 const db = app.firestore();
 
 const conversationsCol = db.collection('conversations');
-const messagesCol = db.collection('messages');
+
+// Messages are stored under `conversations/{conversationId}/messages` subcollections.
+// This avoids composite index requirements and models the one-to-many
+// relationship between a conversation and its messages.
 
 const normalizeConversationId = (s?: any) => {
   if (!s) return '';
@@ -33,18 +36,11 @@ export const persistInbound = async (payload: { from?: string; to?: string; body
     const from = normalizeConversationId(rawFrom);
     const to = normalizeConversationId(rawTo) || normalizeConversationId(payload.to);
 
-    // save message in subcollection (preferred)
-    try {
-      const convRef = conversationsCol.doc(conversationId);
-      await convRef.collection('messages').add({ conversationId, from: from || rawFrom, to: to || rawTo, body: payload.body, direction: 'in', timestamp: now, twilioMessageSid: payload.sid || null, raw: payload.raw || null });
-    } catch (err) {
-      logger.warn('failed to write subcollection message, falling back to top-level', err);
-    }
+    // Persist message in conversation subcollection
+    const convRef = conversationsCol.doc(conversationId);
+    await convRef.collection('messages').add({ conversationId, from: from || rawFrom, to: to || rawTo, body: payload.body, direction: 'in', timestamp: now, twilioMessageSid: payload.sid || null, raw: payload.raw || null });
 
-    // Also write to top-level collection for compatibility
-    await messagesCol.add({ conversationId, from: from || rawFrom, to: to || rawTo, body: payload.body, direction: 'in', timestamp: now, twilioMessageSid: payload.sid || null, raw: payload.raw || null });
-
-    // upsert conversation (single doc)
+    // Upsert conversation metadata
     const docRef = conversationsCol.doc(conversationId);
     await docRef.set({ phone: conversationId, lastMessage: payload.body || '', lastDirection: 'in', updatedAt: now }, { merge: true });
   } catch (err) {
@@ -67,22 +63,12 @@ export const listConversations = async (limit = 100) => {
 export const listMessages = async (conversationId: string) => {
   try {
     const convId = normalizeConversationId(conversationId);
-    // Prefer subcollection under conversation doc (no composite index required)
-    try {
-      const convRef = conversationsCol.doc(convId);
-      let q: any = convRef.collection('messages');
-      if (typeof q.orderBy === 'function') q = q.orderBy('timestamp', 'asc');
-      const snap = await q.get();
-      return snap.docs.map((d: any) => (typeof d.data === 'function' ? d.data() : d));
-    } catch (err) {
-      logger.warn('failed to query subcollection messages, falling back to top-level', err);
-    }
-
-    // Fallback to top-level collection (may require index)
-    let q2: any = messagesCol.where('conversationId', '==', convId);
-    if (typeof messagesCol.orderBy === 'function') q2 = q2.orderBy('timestamp', 'asc');
-    const snap2 = await q2.get();
-    return snap2.docs.map((d: any) => (typeof d.data === 'function' ? d.data() : d));
+    // Query the messages subcollection for this conversation
+    const convRef = conversationsCol.doc(convId);
+    let q: any = convRef.collection('messages');
+    if (typeof q.orderBy === 'function') q = q.orderBy('timestamp', 'asc');
+    const snap = await q.get();
+    return snap.docs.map((d: any) => (typeof d.data === 'function' ? d.data() : d));
   } catch (err) {
     logger.error('listMessages failed', err);
     return [];
@@ -98,18 +84,11 @@ export const sendMessage = async (conversationId: string, body: string) => {
     const now = new Date().toISOString();
 
 
-    // persist outgoing message in subcollection (preferred)
-    try {
-      const convRef = conversationsCol.doc(conversationId);
-      await convRef.collection('messages').add({ conversationId, from, to, body, direction: 'out', timestamp: now, twilioMessageSid: res && res.sid ? res.sid : null });
-    } catch (err) {
-      logger.warn('failed to write outgoing to subcollection, falling back to top-level', err);
-    }
+    // Persist outgoing message in conversation subcollection
+    const convRef = conversationsCol.doc(conversationId);
+    await convRef.collection('messages').add({ conversationId, from, to, body, direction: 'out', timestamp: now, twilioMessageSid: res && res.sid ? res.sid : null });
 
-    // Also write to top-level collection for compatibility
-    await messagesCol.add({ conversationId, from, to, body, direction: 'out', timestamp: now, twilioMessageSid: res && res.sid ? res.sid : null });
-
-    // update conversation
+    // Update conversation metadata
     const docRef = conversationsCol.doc(conversationId);
     await docRef.set({ phone: conversationId, lastMessage: body, lastDirection: 'out', updatedAt: now }, { merge: true });
 
