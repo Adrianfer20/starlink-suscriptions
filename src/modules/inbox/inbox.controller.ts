@@ -13,10 +13,24 @@ export const twilioWhatsappWebhook = async (req: Request, res: Response) => {
     // Validate Twilio signature only in production (helps Postman/local testing)
     if (authToken && process.env.NODE_ENV === 'production') {
       try {
+        // Debug logs to help diagnose signature mismatches in production
+        logger.info('Twilio webhook validation debug', {
+          signature,
+          url,
+          host: req.get('host'),
+          protocol: req.protocol,
+          contentType: req.get('content-type'),
+          paramsKeys: Object.keys(params || {}),
+          ip: req.ip,
+        });
+
         const twilioLib: any = await import('twilio');
         const valid = twilioLib.validateRequest(authToken, signature, url, params);
+
+        logger.info('Twilio signature validation result', { valid });
+
         if (!valid) {
-          logger.warn('Invalid Twilio signature on whatsapp webhook', { url, ip: req.ip });
+          logger.warn('Invalid Twilio signature on whatsapp webhook', { url, ip: req.ip, signature });
           return res.status(403).send('Invalid signature');
         }
       } catch (err) {
