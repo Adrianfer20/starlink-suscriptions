@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as controller from './notification.controller';
+import { authenticate, requireRole } from '../../middleware';
 
 const router = Router();
 
@@ -19,11 +20,11 @@ const router = Router();
 //       - 200 { success: true, sid } en caso de envío exitoso.
 //       - 400/404/500 según correspondan (validación, inexistencia, fallo en envío).
 
-router.post('/send/:clientId', controller.sendForClient);
+router.post('/send/:clientId', authenticate, requireRole('admin'), controller.sendForClient);
 
 // Twilio webhook endpoint to receive incoming messages (WhatsApp/SMS)
 router.post('/webhook/twilio', controller.twilioWebhook);
 // List inbound messages received from Twilio
-router.get('/inbound', controller.listInbound);
+router.get('/inbound', authenticate, requireRole('admin'), controller.listInbound);
 
 export default router;

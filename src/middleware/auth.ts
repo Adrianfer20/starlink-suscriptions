@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as admin from 'firebase-admin';
+import flags from '../config/featureFlags';
 
 // Intentamos cargar la inicialización local de Firebase si existe
 try {
@@ -18,6 +19,11 @@ export const authenticate = async (
   res: Response,
   next: NextFunction
 ) => {
+  // Feature flag: when disabled, bypass auth checks (useful for gradual rollout)
+  if (!flags.FEATURE_AUTH_ROLES) {
+    req.user = { uid: process.env.DEV_ACCOUNT_UID || 'dev', role: process.env.DEV_ACCOUNT_ROLE || 'admin' } as any;
+    return next();
+  }
   try {
     const header = req.header('Authorization') || req.header('authorization');
     if (!header) return res.status(401).json({ message: 'No token provided' });
