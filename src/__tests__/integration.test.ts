@@ -72,15 +72,15 @@ describe('integration api', () => {
       amount: '$75'
     };
 
-    const resCreate = await request(app).post('/clients').send(payload).expect(201);
+    const resCreate = await request(app).post('/clients').set('Authorization', 'Bearer test-admin').send(payload).expect(201);
     expect(resCreate.body.id).toBeDefined();
     const id = resCreate.body.id;
 
-    const resList = await request(app).get('/clients').expect(200);
+    const resList = await request(app).get('/clients').set('Authorization', 'Bearer test-admin').expect(200);
     expect(Array.isArray(resList.body)).toBe(true);
 
     // Send notification using mapped template key (must exist in template.mapper)
-    const resSend = await request(app).post(`/notifications/send/${id}`).query({ template: 'subscription_reminder_3days' }).send().expect(200);
+    const resSend = await request(app).post(`/notifications/send/${id}`).set('Authorization','Bearer test-admin').query({ template: 'subscription_reminder_3days' }).send().expect(200);
     expect(resSend.body.success).toBe(true);
     expect(resSend.body.sid).toBe('SM123');
 
