@@ -4,54 +4,15 @@ on:
   push:
     branches:
       - feature/auth-roles
-  pull_request:
-  workflow_dispatch:
-
-jobs:
-  smoke-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        featureFlag: ['true','false']
-    name: Smoke tests (FEATURE_AUTH_ROLES=${{ matrix.featureFlag }})
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests with feature flag
-        env:
-          FEATURE_AUTH_ROLES: ${{ matrix.featureFlag }}
-          NODE_ENV: test
-        run: npm test --silent
-name: Smoke tests - FEATURE_AUTH_ROLES
-on:
   pull_request: {}
-  push:
-    branches:
-      - feature/auth-roles
-  workflow_dispatch:
-    
+  workflow_dispatch: {}
+
 jobs:
   smoke-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        featureFlag: [ 'true', 'false' ]
+        featureFlag: ['true', 'false']
     name: Smoke tests (FEATURE_AUTH_ROLES=${{ matrix.featureFlag }})
     steps:
       - uses: actions/checkout@v4
